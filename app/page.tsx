@@ -1,3 +1,4 @@
+import StoryWriter from "@/components/StoryWriter";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import Link from "next/link";
@@ -12,7 +13,11 @@ export default function Home() {
             <Link href="/stories">Explore Story Library</Link>
           </Button>
         </div>
+        <StoryWriter />
       </section>
+
+      {/* story writer */}
+   
     </main>
   );
 }
