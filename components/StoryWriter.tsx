@@ -11,6 +11,8 @@ import {
 } from "./ui/select";
 import { Textarea } from "./ui/textarea";
 import { Value } from "@radix-ui/react-select";
+import { Frame } from "@gptscript-ai/gptscript";
+import renderEventMessage from "@/lib/renderEventMessage";
 
 const storiesPath = "public/stories";
 
@@ -21,6 +23,7 @@ const StoryWriter = () => {
   const [runStarted, setRunStarted] = useState<boolean>(false);
   const [runFinished, setRunFinished] = useState<boolean | null>(null);
   const [currentTool, setCurrentTool] = useState();
+  const [events, setEvents] = useState<Frame[]>([]);
 
   const runScript = async () => {
     setRunStarted(true);
@@ -36,12 +39,61 @@ const StoryWriter = () => {
 
     if (response.ok && response.body) {
       // handle streams from API
+      console.log("Streaing started");
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      handleStream(reader, decoder);
     } else {
       setRunFinished(true);
       setRunStarted(false);
       console.error("Failed to start streaming");
     }
   };
+
+  async function handleStream(
+    reader: ReadableStreamDefaultReader<Uint8Array>,
+    decoder: TextDecoder
+  ) {
+    // Manage the stream from the API ...
+
+    while (true) {
+      const { done, value } = await reader.read();
+
+      if (done) break; // break out of the infinite loop
+
+      const chunk = decoder.decode(value, { stream: true });
+
+      const eventData = chunk
+        .split("\n\n")
+        .filter((line) => line.startsWith("event: "))
+        .map((line) => line.replace(/^event: /, ""));
+
+      // explanation: we parse the JSON data and update the state accordingly
+      eventData.forEach((data) => {
+        try {
+          const parsedData = JSON.parse(data);
+
+          if (parsedData.type === "callProgress") {
+            setProgress(
+              parsedData.output[parsedData.output.length - 1].content
+            );
+            setCurrentTool(parsedData.tool?.description || "");
+          } else if (parsedData.type === "callStart") {
+            setCurrentTool(parsedData.tool?.description || "");
+          } else if (parsedData.type === "runFinish") {
+            setRunFinished(true);
+            setRunStarted(false);
+          } else {
+            setEvents((prevEvents) => [...prevEvents, parsedData]);
+          }
+        } catch (error) {
+          console.error("Failed to parse JSON", error);
+        }
+      });
+    }
+  }
 
   return (
     <div className="flex flex-col container">
@@ -101,6 +153,14 @@ const StoryWriter = () => {
             </div>
           )}
           {/* Render events */}
+          <div className="space-y-5">
+            {events.map((event, index) => (
+              <div key={index}>
+                <span className="mr-5">{">>"}</span>
+                {renderEventMessage(event)}
+              </div>
+            ))}
+          </div>
           {runStarted && (
             <div>
               <span className="mr-5 animate-in">
