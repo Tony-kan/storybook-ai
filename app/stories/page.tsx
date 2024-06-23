@@ -15,6 +15,7 @@ const Stories = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
         {stories.map((story) => (
           <Link
+            key={story.story}
             href={`/stories/${story.story}`}
             className="border rounded-lg cursor-pointer hover:shadow-lg hover:border-purple-500 transition-all duration-300 ease-in-out"
           >

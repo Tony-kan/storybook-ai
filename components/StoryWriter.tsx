@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import {
   Select,
@@ -13,6 +13,8 @@ import { Textarea } from "./ui/textarea";
 import { Value } from "@radix-ui/react-select";
 import { Frame } from "@gptscript-ai/gptscript";
 import renderEventMessage from "@/lib/renderEventMessage";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 const storiesPath = "public/stories";
 
@@ -24,6 +26,7 @@ const StoryWriter = () => {
   const [runFinished, setRunFinished] = useState<boolean | null>(null);
   const [currentTool, setCurrentTool] = useState();
   const [events, setEvents] = useState<Frame[]>([]);
+  const router = useRouter();
 
   const runScript = async () => {
     setRunStarted(true);
@@ -95,6 +98,20 @@ const StoryWriter = () => {
     }
   }
 
+  useEffect(() => {
+    if (runFinished) {
+      toast.success("Story generated Successfully", {
+        action: (
+          <Button
+            onClick={() => router.push("/stories")}
+            className="bg-purple-500 ml-auto"
+          >
+            View Stories
+          </Button>
+        ),
+      });
+    }
+  }, [runFinished, router]);
   return (
     <div className="flex flex-col container">
       <section className="flex-1 flex flex-col border border-purple-300 rounded-md p-10 space-y-2">
@@ -135,7 +152,7 @@ const StoryWriter = () => {
             {runFinished === null && (
               <>
                 <p className="animate-purse mr-5">
-                  I'm waiting for you to Generate a story above...
+                  I am waiting for you to Generate a story above...
                 </p>
                 <br />
               </>
